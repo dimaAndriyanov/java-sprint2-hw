@@ -1,74 +1,128 @@
-// Класс отвечает за работу с отчетами
+import java.util.HashMap;
+
+
+// Основной класс приложения. Отвечает за работу с отчетами
 public class ReportManager {
 
     String[] months = {"Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
             "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"};
+    HashMap<Integer, MonthlyReport[]> monthlyReportsByYear = new HashMap<>();
+    HashMap<Integer, YearlyReport> yearlyReportsByYear = new HashMap<>();
+    FileLoader fileLoader = new FileLoader();
+    ReportChecker reportChecker = new ReportChecker();
 
-    // Выводит информацио о загруженных месячных отчетах за год year
-    public void showMonthlyReportsStatistics(MonthlyReport[] monthlyReports, int year) {
-        System.out.println(year + " год");
-        for (int i = 0; i < monthlyReports.length; i++) {
-            if (monthlyReports[i] != null) {
-                System.out.println(months[i]);
-                String nameOfBiggestEarning = monthlyReports[i].getBiggestEarningName();
-                if (nameOfBiggestEarning != null) {
-                    System.out.println("Больше всего заработано на - " + nameOfBiggestEarning +
-                            ": доход составил " + monthlyReports[i].getEarning(nameOfBiggestEarning));
-                } else {
-                    System.out.println("В этом месяце нет доходов");
-                }
-                String nameOfBiggestSpending = monthlyReports[i].getBiggestSpendingName();
-                if (nameOfBiggestSpending != null) {
-                    System.out.println("Больше всего потрачено на - " + nameOfBiggestSpending +
-                            ": расход составил " + monthlyReports[i].getSpending(nameOfBiggestSpending));
-                } else {
-                    System.out.println("В этом месяце нет расходов");
-                }
+    // Возвращает true, если месячные отчеты в году year были считаны, false - в противном случае
+    public boolean containsMonthlyReportsByYear(int year) {
+        return this.monthlyReportsByYear.containsKey(year);
+    }
+
+    // Последовательно считывает данные из файлов, содержащих месячные отчеты за год year
+    // в интервале firstMonthNumber, lastMonthNumber включительно. Добавляет данные в объекты приложения
+    public void readMonthlyReportsByYear(int year, int firstMonthNumber, int lastMonthNumber) {
+        MonthlyReport[] monthlyReports = new MonthlyReport[12];
+        boolean flag = true;
+        String path;
+        for (int i = firstMonthNumber; (i <= lastMonthNumber) && (i <= 9); i++) {
+            path = "resources/m." + year + "0" + i + ".csv";
+            monthlyReports[i - 1] = this.fileLoader.fillMonthlyReportFromFile(path);
+            if (monthlyReports[i - 1] == null) {
+                flag = false;
             }
         }
-    }
-
-    // Выводит информацию о загруженном годовом отчете за год year
-    public void showYearlyReportStatistics(YearlyReport yearlyReport, int year) {
-        System.out.println(year + " год");
-        int amountOfMonthlyReports = yearlyReport.getAmountOfMonthlyReports();
-        if (amountOfMonthlyReports > 0) {
-            System.out.println("Прибыль по каждому месяцу:");
-            yearlyReport.showProfitsByMonths(months);
-            System.out.println("Средний расход за все месяцы в году - " +
-                    yearlyReport.getAverageSpending());
-            System.out.println("Средний доход за все месяцы в году - " +
-                    yearlyReport.getAverageEarning());
-        } else {
-            System.out.println("Годовой отчет составлен некорректно");
-        }
-    }
-
-    // Сверяет загруженные месячные и годовой отчеты, основываясь на балансах
-    public void checkReports(MonthlyReport[] monthlyReports, YearlyReport yearlyReport) {
-        boolean flag = true;
-        for (int i = 0; i < monthlyReports.length; i++) {
-            if (monthlyReports[i] != null) {
-                if (!yearlyReport.isEmptyMonthReport(i)) {
-                    if (monthlyReports[i].getSpendingsSum() != yearlyReport.getSpendingByMonth(i)) {
-                        System.out.println("Есть расхождения в доходах за " + months[i]);
-                        flag = false;
-                    }
-                    if (monthlyReports[i].getEarningsSum() != yearlyReport.getEarningByMonth(i)) {
-                        System.out.println("Есть расхождения в расходах за " + months[i]);
-                        flag = false;
-                    }
-                } else {
-                    System.out.println("В годовом отчете отсутствует информация за " + months[i]);
-                    flag = false;
-                }
-            } else if (!yearlyReport.isEmptyMonthReport(i)) {
-                System.out.println("Отсутствует месячный отчет за " + months[i]);
+        for (int i = Integer.max(firstMonthNumber, 10); i <= lastMonthNumber; i++) {
+            path = ("resources/m." + year) + i + ".csv";
+            monthlyReports[i - 1] = this.fileLoader.fillMonthlyReportFromFile(path);
+            if (monthlyReports[i - 1] == null) {
                 flag = false;
             }
         }
         if (flag) {
-            System.out.println("Отчеты успешно сверены. Расхождений не обнаружено");
+            this.monthlyReportsByYear.put(year, monthlyReports);
+            System.out.println("Отчеты загружены");
+        } else {
+            System.out.println("Отчеты не загружены");
+        }
+    }
+
+    // Возвращает true, если годовой отчет в году year был считан, false - в противном случае
+    public boolean containsYearlyReportByYear(int year) {
+        return this.yearlyReportsByYear.containsKey(year);
+    }
+
+    // Считывает данные из файла, содержащего годовой отчет за год year. Добавляет данные в объекты приложения
+    public void readYearlyReportByYear(int year) {
+        String path = "resources/y." + year + ".csv";
+        YearlyReport yearlyReport = this.fileLoader.fillYearlyReportFromFile(path);
+        if (yearlyReport != null) {
+            this.yearlyReportsByYear.put(year, yearlyReport);
+        } else {
+            System.out.println("Отчет не загружен");
+        }
+    }
+
+    // Выводит информацио о загруженных месячных отчетах за год year
+    public void showMonthlyReportsStatisticsByYear(int year) {
+        if (this.containsMonthlyReportsByYear(year)) {
+            MonthlyReport[] monthlyReports = this.monthlyReportsByYear.get(year);
+            System.out.println(year + " год");
+            for (int i = 0; i < monthlyReports.length; i++) {
+                if (monthlyReports[i] != null) {
+                    System.out.println(this.months[i]);
+                    MonthRecord monthRecord = monthlyReports[i].getBiggestEarningMonthRecord();
+                    if (monthRecord != null) {
+                        System.out.println("Больше всего заработано на - " + monthRecord.getName() +
+                                ": доход составил " + monthRecord.getPrice());
+                    } else {
+                        System.out.println("В этом месяце нет доходов");
+                    }
+                    monthRecord = monthlyReports[i].getBiggestSpendingMonthRecord();
+                    if (monthRecord != null) {
+                        System.out.println("Больше всего потрачено на - " + monthRecord.getName() +
+                                ": расход составил " + monthRecord.getPrice());
+                    } else {
+                        System.out.println("В этом месяце нет расходов");
+                    }
+                }
+            }
+        } else {
+            System.out.println("За указанный год не загружено ни одного месячного отчета");
+        }
+    }
+
+    // Выводит информацию о загруженном годовом отчете за год year
+    public void showYearlyReportStatisticsByYear(int year) {
+        if (this.containsYearlyReportByYear(year)) {
+            YearlyReport yearlyReport = this.yearlyReportsByYear.get(year);
+            System.out.println(year + " год");
+            int amountOfMonthlyReports = yearlyReport.getAmountOfMonthlyReports();
+            if (amountOfMonthlyReports > 0) {
+                System.out.println("Прибыль по каждому месяцу:");
+                yearlyReport.showProfitsByMonths(this.months);
+                System.out.println("Средний расход за все месяцы в году - " +
+                        yearlyReport.getAverageSpending());
+                System.out.println("Средний доход за все месяцы в году - " +
+                        yearlyReport.getAverageEarning());
+            } else {
+                System.out.println("Годовой отчет составлен некорректно");
+            }
+        } else {
+            System.out.println("За указанный год годовой отчет не загружен");
+        }
+    }
+
+    // Сверяет загруженные месячные и годовой отчеты, основываясь на балансах
+    public void checkReportsByYear(int year) {
+        if (this.containsMonthlyReportsByYear(year)) {
+            if (this.containsYearlyReportByYear(year)) {
+                this.reportChecker.checkReports(this.monthlyReportsByYear.get(year),
+                        this.yearlyReportsByYear.get(year), this.months);
+            } else {
+                System.out.println("За указанный год не загружен годовой отчет");
+            }
+        } else if (this.yearlyReportsByYear.containsKey(year)){
+            System.out.println("За указанный год не загружено ни одного месячного отчета");
+        } else {
+            System.out.println("За указанный год не загружено ни одного отчета");
         }
     }
 }

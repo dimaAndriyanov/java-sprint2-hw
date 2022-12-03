@@ -1,18 +1,18 @@
 // Хранит данные по конкретному товару из месячного отчета
-public class ItemData {
+public class MonthRecord {
 
-    boolean isExpense; // true - товар является тратой, false - доходом
+    String name; // наименование товара
     int quantity; // количество товара
     int pricePerItem; // цена единицы товара
 
-    public ItemData(boolean isExpense, int quantity, int pricePerItem) {
-        this.isExpense = isExpense;
+    public MonthRecord(String name, int quantity, int pricePerItem) {
+        this.name = name;
         this.quantity = quantity;
         this.pricePerItem = pricePerItem;
     }
 
-    public boolean isExpense() {
-        return this.isExpense;
+    public String getName() {
+        return this.name;
     }
 
     public int getQuantity() {
@@ -21,5 +21,9 @@ public class ItemData {
 
     public int getPricePerItem() {
         return this.pricePerItem;
+    }
+
+    public int getPrice() {
+        return this.getQuantity() * this.getPricePerItem();
     }
 }
